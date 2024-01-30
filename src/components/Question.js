@@ -4,13 +4,14 @@
 
 import Options from "./Options";
 
-//loop over and display so user can click on one.
-function Question({ question }) {
+//loop over and display so user can click on one. This component receives
+//the first question from the questions array at index 0. questions[index]
+function Question({ question, dispatch, answer }) {
   console.log(question);
   return (
     <div>
       <h4>{question.question}</h4>
-      <Options question={question} />
+      <Options question={question} dispatch={dispatch} answer={answer} />
     </div>
   );
 }

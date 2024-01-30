@@ -21,6 +21,7 @@ const initialState = {
   //next question the screen will rerender. That's why it needs to be a state variable. Pass in
   //index to our Question component in order to get the right question from questions array.
   index: 0,
+  answer: null, //no answer initially but need an action to update answer state.
 };
 
 function reducer(state, action) {
@@ -46,6 +47,11 @@ function reducer(state, action) {
       };
     //dispatch an action from the button on StartScreen. Need access to the dispatch function
     //in StartScreen component. Pass it in to the StartScreen instance in App's JSX.
+    case "newAnswer":
+      return {
+        ...state,
+        answer: action.payload,
+      };
     default:
       throw new Error("Action unknown");
   }
@@ -56,10 +62,8 @@ export default function App() {
   //load questions data on mount
   //pretend we are loading the quiz questions from somewhere. creating a
   //fake API using an npm package called JSON server.
-  const [/* state */ { questions, status, index }, dispatch] = useReducer(
-    reducer,
-    initialState
-  );
+  const [/* state */ { questions, status, index, answer }, dispatch] =
+    useReducer(reducer, initialState);
 
   const numQuestions = questions.length;
 
@@ -91,11 +95,19 @@ export default function App() {
         {status === "ready" && (
           <StartScreen numQuestions={numQuestions} dispatch={dispatch} />
         )}
-        {status === "active" && <Question question={questions[index]} />}
+        {status === "active" && (
+          <Question
+            question={questions[index]}
+            dispatch={dispatch}
+            answer={answer}
+          />
+        )}
       </Main>
     </div>
     //Pass in the index state to our Question component in order to get the right question
-    //at the correct index from the questions array.
+    //at the correct index from the questions array. Also need answer/option that was chosen
+    //so I can display whether the users answer was correct or not. CSS is going to paint the
+    //option with a color.
   );
 }
 //I am reusing the status state to decide what will be displayed in the <Main> part of the
