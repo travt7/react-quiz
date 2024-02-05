@@ -5,7 +5,10 @@
 import Options from "./Options";
 
 //loop over and display so user can click on one. This component receives
-//the first question from the questions array at index 0. questions[index]
+//the first question from the questions array at index 0. questions[index] So initially we
+//pass the object at index[0] in the questions array through the question prop. Refer to App.
+//question, dispatch, answer:These are properties from the Question instance in APP JSX where
+//each property is assigned some data.
 function Question({ question, dispatch, answer }) {
   console.log(question);
   return (

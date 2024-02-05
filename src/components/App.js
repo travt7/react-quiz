@@ -5,6 +5,8 @@ import Loader from "./Loader";
 import Error from "./Error";
 import StartScreen from "./StartScreen";
 import Question from "./Question";
+import NextButton from "./NextButton";
+import Progress from "./Progress";
 
 const initialState = {
   questions: [], //by default, empty array
@@ -20,8 +22,12 @@ const initialState = {
   //certain question object out of the questions array. When the index changes to display the
   //next question the screen will rerender. That's why it needs to be a state variable. Pass in
   //index to our Question component in order to get the right question from questions array.
-  index: 0,
+  //Moving to the next question means moving to the next index.
+  index: 0, //index determines which question is read and appears in UI**
   answer: null, //no answer initially but need an action to update answer state.
+  //points for correct answers need to update on the screen. Need state variable.
+  points: 0, //Where do we update these points? Makes sense to update the points in the same
+  //place where we received the newAnswer.
 };
 
 function reducer(state, action) {
@@ -29,7 +35,7 @@ function reducer(state, action) {
   switch (action.type) {
     case "dataReceived":
       //return a new state object with the questions and status properties updated. So we updated
-      //the questions and status states by dispatching the one dataReceived
+      //the questions and status states by useEffect dispatching the action.type dataReceived
       return {
         ...state, //get current state
         questions: action.payload, //set questions property to data received from fetch
@@ -48,9 +54,40 @@ function reducer(state, action) {
     //dispatch an action from the button on StartScreen. Need access to the dispatch function
     //in StartScreen component. Pass it in to the StartScreen instance in App's JSX.
     case "newAnswer":
+      //We don't have the current question stored in the state. We only know the index given by
+      //the map function in Options class dispatched as the payload data to the answer property.
+      //in this case 'newAnswer'. That only happens if user clicks on one of the buttons.
+      const question = state.questions.at(state.index); //leveraging the current state's index
+      //property to give us the current element in the state.questions array that the reducer
+      //receives. With this variable we know the current question and can check if the current
+      //question is equal to the received answer that we have from the onClick attribute calling
+      //dispatch function and passing the index from map as the action.payload data.
+      //Then compute the next state.
+      //It's better for this logic to be in the reducer than in the place where the event is
+      //first handled(Options component).
       return {
         ...state,
-        answer: action.payload,
+        answer: action.payload, //answer from the user(0,1,2,3 index from map)
+        //How do I award the points only if the answer is correct? Figure out which is the current
+        //question. Find out if the answer is correct. If correct ONLY then do we add the points for
+        //that correct answer to the current points.
+        points:
+          //does the index of the mapping function(payload) === correctOption property on the current
+          //question object: state.questions.at(state.index). Then add the current question
+          //object's points property(from API) to points state.
+          action.payload === question.correctOption
+            ? state.points + question.points
+            : state.points,
+        //each question object has a points property and it's value is the number of points
+        //awarded for a particular question.
+      };
+    //creating another possible action in the reducer for next question
+    case "nextQuestion":
+      return {
+        //all we want to change is the index state property and then create button to do it
+        ...state,
+        index: state.index + 1,
+        answer: null,
       };
     default:
       throw new Error("Action unknown");
@@ -62,10 +99,19 @@ export default function App() {
   //load questions data on mount
   //pretend we are loading the quiz questions from somewhere. creating a
   //fake API using an npm package called JSON server.
-  const [/* state */ { questions, status, index, answer }, dispatch] =
+  const [/* state */ { questions, status, index, answer, points }, dispatch] =
     useReducer(reducer, initialState);
 
-  const numQuestions = questions.length;
+  const numQuestions = questions.length; //number of questions in the quiz. Derive state.
+  //What is max amount of points user can achieve? Derived state again. We can compute max
+  //points from the questions array points property.
+  const maxPossiblePoints = questions.reduce(
+    (prev, cur) => prev + cur.points,
+    0
+  );
+  //reduce method bc we want to reduce into one single value to display. This callback always
+  //gets the previous value(0 at the beginning) and the current value of the questions array
+  //as the 1st argument.2nd argument is the initial value(0 in our case here).
 
   useEffect(function () {
     //returns a res on mount that I need to convert to json which will then return another promise so I chain
@@ -96,11 +142,27 @@ export default function App() {
           <StartScreen numQuestions={numQuestions} dispatch={dispatch} />
         )}
         {status === "active" && (
-          <Question
-            question={questions[index]}
-            dispatch={dispatch}
-            answer={answer}
-          />
+          <>
+            <Progress
+              index={index}
+              numQuestions={numQuestions}
+              points={points} //need current points state displayed out of max possible
+              maxPossiblePoints={maxPossiblePoints} //Derive state
+              answer={answer}
+            />
+            <Question
+              question={questions[index]} //index determines which question appears in UI. Passing
+              //in the questions object that corresponds to the current index.
+              dispatch={dispatch}
+              answer={answer}
+            />
+            <NextButton dispatch={dispatch} answer={answer} />
+            {/* also want to always display the button if quiz status state is active. but the
+            button component will only render the <button> element itself if there has been an
+            answer. Can do conditional rendering a couple of ways but here I will do it inside
+            the button. So I will allow NextButton to decide if it wants to render itself or not.
+            Need to dispatch an action to change index state. */}
+          </>
         )}
       </Main>
     </div>
