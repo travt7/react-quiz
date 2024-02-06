@@ -7,6 +7,7 @@ import StartScreen from "./StartScreen";
 import Question from "./Question";
 import NextButton from "./NextButton";
 import Progress from "./Progress";
+import FinishScreen from "./FinishScreen";
 
 const initialState = {
   questions: [], //by default, empty array
@@ -28,6 +29,7 @@ const initialState = {
   //points for correct answers need to update on the screen. Need state variable.
   points: 0, //Where do we update these points? Makes sense to update the points in the same
   //place where we received the newAnswer.
+  highscore: 0,
 };
 
 function reducer(state, action) {
@@ -89,6 +91,17 @@ function reducer(state, action) {
         index: state.index + 1,
         answer: null,
       };
+    //When and where and how is the best way of calculating the highscore? Exactly when the user
+    //finishes the quiz/game. Right when the finish event case happens by clicking on finish button
+    //in NextButton component. We need highscore to be remembered across rerenders so it will
+    //need to be another piece of state.
+    case "finish":
+      return {
+        ...state,
+        status: "finished",
+        highscore:
+          state.points > state.highscore ? state.points : state.highscore,
+      };
     default:
       throw new Error("Action unknown");
   }
@@ -99,8 +112,10 @@ export default function App() {
   //load questions data on mount
   //pretend we are loading the quiz questions from somewhere. creating a
   //fake API using an npm package called JSON server.
-  const [/* state */ { questions, status, index, answer, points }, dispatch] =
-    useReducer(reducer, initialState);
+  const [
+    /* state */ { questions, status, index, answer, points, highscore },
+    dispatch,
+  ] = useReducer(reducer, initialState);
 
   const numQuestions = questions.length; //number of questions in the quiz. Derive state.
   //What is max amount of points user can achieve? Derived state again. We can compute max
@@ -156,13 +171,26 @@ export default function App() {
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton dispatch={dispatch} answer={answer} />
+            <NextButton
+              dispatch={dispatch}
+              answer={answer}
+              index={index}
+              numQuestions={numQuestions}
+            />
             {/* also want to always display the button if quiz status state is active. but the
             button component will only render the <button> element itself if there has been an
             answer. Can do conditional rendering a couple of ways but here I will do it inside
             the button. So I will allow NextButton to decide if it wants to render itself or not.
             Need to dispatch an action to change index state. */}
           </>
+        )}
+        {status === "finished" && (
+          <FinishScreen
+            points={points}
+            maxPossiblePoints={maxPossiblePoints}
+            highScore={highscore}
+          />
+          //where in our code do we make status 'finished'?
         )}
       </Main>
     </div>
