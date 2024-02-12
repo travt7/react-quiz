@@ -8,6 +8,10 @@ import Question from "./Question";
 import NextButton from "./NextButton";
 import Progress from "./Progress";
 import FinishScreen from "./FinishScreen";
+import Footer from "./Footer";
+import Timer from "./Timer";
+
+const SECS_PER_QUESTION = 30;
 
 const initialState = {
   questions: [], //by default, empty array
@@ -30,6 +34,10 @@ const initialState = {
   points: 0, //Where do we update these points? Makes sense to update the points in the same
   //place where we received the newAnswer.
   highscore: 0,
+  secondsRemaining: null, //once there are no more seconds remaining the quiz will finish. Default
+  //is null bc we don't know how many questions when the app is first loaded. Not until the 'start'
+  //action is dispatched in the StartScreen component. So I will calculate this number in the
+  //'start' event bc at that point I will have the questions array.
 };
 
 function reducer(state, action) {
@@ -52,6 +60,9 @@ function reducer(state, action) {
       return {
         ...state,
         status: "active",
+        secondsRemaining: state.questions.length * SECS_PER_QUESTION, //# of questions * 30 seconds each
+        //but no magic numbers, need to create a constant for a value like this. Otherwise it is
+        //unclear to see a 30 sitting in there.
       };
     //dispatch an action from the button on StartScreen. Need access to the dispatch function
     //in StartScreen component. Pass it in to the StartScreen instance in App's JSX.
@@ -102,6 +113,29 @@ function reducer(state, action) {
         highscore:
           state.points > state.highscore ? state.points : state.highscore,
       };
+    case "restart":
+      //expand the entire initialState object. access and keep the questions so we don't have
+      //to fetch them again. This explicitly says I want to reset back to something similar to
+      //the initialState
+      return { ...initialState, questions: state.questions, status: "ready" };
+    //or return {
+    //...state,
+    //points: 0,
+    //highscore: 0,
+    //index: 0,
+    //answer: null,
+    //status: 'ready'
+
+    //dispatch this event in the setInterval func in Timer component.
+    case "tick":
+      return {
+        ...state,
+        secondsRemaining: state.secondsRemaining - 1,
+        status: state.secondsRemaining === 0 ? "finished" : state.status,
+        //allows us to check if there are 0 seconds remaining. When secondsRemaining becomes 0
+        //we then set status state to finished which triggers the FinishScreen instead of what
+        //we have in the 'active' state.
+      };
     default:
       throw new Error("Action unknown");
   }
@@ -113,7 +147,15 @@ export default function App() {
   //pretend we are loading the quiz questions from somewhere. creating a
   //fake API using an npm package called JSON server.
   const [
-    /* state */ { questions, status, index, answer, points, highscore },
+    /* state */ {
+      questions,
+      status,
+      index,
+      answer,
+      points,
+      highscore,
+      secondsRemaining,
+    },
     dispatch,
   ] = useReducer(reducer, initialState);
 
@@ -171,12 +213,15 @@ export default function App() {
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton
-              dispatch={dispatch}
-              answer={answer}
-              index={index}
-              numQuestions={numQuestions}
-            />
+            <Footer>
+              <Timer dispatch={dispatch} secondsRemaining={secondsRemaining} />
+              <NextButton
+                dispatch={dispatch}
+                answer={answer}
+                index={index}
+                numQuestions={numQuestions}
+              />
+            </Footer>
             {/* also want to always display the button if quiz status state is active. but the
             button component will only render the <button> element itself if there has been an
             answer. Can do conditional rendering a couple of ways but here I will do it inside
@@ -189,6 +234,7 @@ export default function App() {
             points={points}
             maxPossiblePoints={maxPossiblePoints}
             highScore={highscore}
+            dispatch={dispatch}
           />
           //where in our code do we make status 'finished'?
         )}

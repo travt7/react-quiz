@@ -10,7 +10,7 @@ import Options from "./Options";
 //question, dispatch, answer:These are properties from the Question instance in APP JSX where
 //each property is assigned some data.
 function Question({ question, dispatch, answer }) {
-  console.log(question);
+  //console.log(question);
   return (
     <div>
       <h4>{question.question}</h4>
